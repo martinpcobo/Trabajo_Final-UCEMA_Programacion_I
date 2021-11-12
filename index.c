@@ -1,20 +1,11 @@
+// ! Libraries
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-typedef struct {
-   int tm_sec;         /* seconds,  range 0 to 59          */
-   int tm_min;         /* minutes, range 0 to 59           */
-   int tm_hour;        /* hours, range 0 to 23             */
-   int tm_mday;        /* day of the month, range 1 to 31  */
-   int tm_mon;         /* month, range 0 to 11             */
-   int tm_year;        /* The number of years since 1900   */
-   int tm_wday;        /* day of the week, range 0 to 6    */
-   int tm_yday;        /* day in the year, range 0 to 365  */
-   int tm_isdst;       /* daylight saving time             */
-} Time;
-
+// ! Types Definitions
+typedef struct tm Time;
 typedef struct {
     char plate[8];
     float amount;
@@ -23,7 +14,7 @@ typedef struct {
 } Car;
 
 typedef struct {
-    Car data;
+    Car *data;
     Car *next;
 } Node;
 
@@ -33,17 +24,28 @@ typedef struct {
     int size;
 } List;
 
-int menu();
-FILE* open_file(char *file_name, char *file_mode);
-void status(List *car_list, int garage_size);
-void register_car(List *car_list);
-void checkout_car(List *car_list);
-void log(char *log_file_name, char *log_data);
-void read_log(char *log_file_name);
+// ! Functions Prototypes
 
-const int minute_price = 5;
+// * File Functions
+FILE* open_file(char *file_name, char *file_mode);
+
+// * Lists Functions
+Node* create_node(Car *car_data, char *log_file_name);
+void insert_car(char *log_file_name, List *list, Car *car_data);
+void remove_car_search(char *log_file_name, List *list, char *plate);
+
+// * Systems Functions
+int menu();
+void status(List *car_list, int garage_size);
+void log_record(char *log_file_name, char *log_data);
+void read_log(char *log_file_name);
+void checkout_car(char *log_file_name, List *car_list);
+void register_car(char *log_file_name, List *car_list, int garage_size);
+
+// ! System Functions
 
 int main () {
+    int rate = 5;
     int garage_size = 12;
     char *log_file_name = "log.txt";
 
@@ -77,16 +79,6 @@ int main () {
     return 0;
 }
 
-FILE* open_file(char *file_name, char *file_mode) {
-    FILE *file = fopen(file_name, file_mode);
-
-    if (file == NULL) {
-        printf("\nError al abrir el archivo %s en el modo %s\n", file_name, file_mode);
-        exit(1);
-    }
-
-    return file;
-}
 int menu() {
     int opt = 0;
 
@@ -97,17 +89,26 @@ int menu() {
     printf("4- \n");
     printf("5- \n");
 
+    printf("\nIngrese una opción: ");
     fflush(stdin);
     scanf("%d", &opt);
+
+    system("clear");
 
     return opt;
 }
 void status(List *car_list, int garage_size) {
-    printf("\nAutos en garage: %d\n", car_list->size);
-    printf("Espacios disponibles en garage: %d\n", (garage_size - car_list->size));
+    if (garage_size - car_list->size > 0) {
+        printf("[Hay lugar disponible]\n");
+        printf("Espacios disponibles en garage: %d\n", (garage_size - car_list->size));
+    }
+    else {
+        printf("\n[No hay lugar disponible]\n");
+    }
+    printf("Autos en garage: %d\n", car_list->size);
     return;
 }
-void log(char *log_file_name, char *log_data) {
+void log_record(char *log_file_name, char *log_data) {
     FILE *file_handler = open_file(log_file_name, "a");
 
     time_t t;
@@ -144,5 +145,110 @@ void read_log(char *log_file_name) {
 
     free(buffer);
     fclose(file_handler);
+
     return;
+}
+void register_car(char *log_file_name, List *car_list, int garage_size) {
+    if (car_list->size == garage_size) {
+        printf("\nNo se puede agregar otro auto, garage lleno\n");
+        return;
+    }
+
+    Car *new_car = (Car *) calloc(1, sizeof(Car));
+
+    printf("\nIngrese Placa: ");
+    fflush(stdin);
+    scanf("%s", new_car->plate);
+
+    time_t currentTime;
+    time(&currentTime);
+
+    new_car->time_from = *localtime(&currentTime);
+
+    insert_car(log_file_name, car_list, new_car);
+
+    return;
+}
+
+void checkout_car(char *log_file_name, List *car_list) {
+    char *plate = NULL;
+
+    printf("\nIngrese Placa: ");
+    fflush(stdin);
+    scanf("%s", plate);
+
+    remove_car_search(log_file_name, car_list, plate);
+
+    return;
+}
+
+// ! Lists Functions
+
+Node* create_node(Car *car_data, char *log_file_name) {
+    Node *new_node = (Node *) calloc(1, sizeof(Node));
+    
+    if (new_node == NULL) {
+        printf("\nError al crear nodo: Memoria Insuficiente\n");
+        log_record(log_file_name, "Error al crear Nodo: Memoria insuficiente");
+    }
+
+    new_node->data = car_data;
+    new_node->next = NULL;
+
+    return new_node;
+}
+void insert_car(char *log_file_name, List *list, Car *car_data) {
+    Node *new_node = create_node(car_data, log_file_name);
+
+    if (list->tail < 1){
+        list->head = new_node;
+        list->tail = new_node;
+    }
+    else {
+        list->tail->next = new_node;
+        list->tail = new_node;
+    }
+
+    log(log_file_name, "Se registro un nuevo auto");
+
+    return;
+}
+void remove_car_search(char *log_file_name, List *list, char *plate) {
+    Node *current = list->head;
+    Node *previous = NULL;
+
+    while (current != NULL)
+    {
+        if (strcmp(current->data->plate, plate) == 0)
+        {
+            if (previous == NULL)
+            {
+                list->head = current->next;
+            }
+            else
+            {
+                previous->next = current->next;
+            }
+            free(current);
+            log(log_file_name, "Se elimino un auto del garage");
+            return;
+        }
+        previous = current;
+        current = current->next;
+    }
+    printf("\nNo se ha encontrado al auto que se desea eliminar\n");
+    return;
+}
+
+// ! File Functions
+
+FILE* open_file(char *file_name, char *file_mode) {
+    FILE *file = fopen(file_name, file_mode);
+
+    if (file == NULL) {
+        printf("\nError al abrir el archivo %s en el modo %s\n", file_name, file_mode);
+        exit(1);
+    }
+
+    return file;
 }
