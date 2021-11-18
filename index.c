@@ -34,7 +34,7 @@ typedef struct
 FILE *open_file(char *file_name, char *file_mode);
 
 List *retrieve_list(char *list_file_name);
-void save_list(List *list, char *list_file_name);
+void save_list(List *list, char *list_file_name, int flag_var);
 
 // * Lists Functions
 void delete_list(List *list);
@@ -49,13 +49,13 @@ void status(List *vehicle_list, int garage_size);
 void log_record(char *log_file_name, char *log_data);
 void read_log(char *log_file_name);
 
-void register_vehicle_wait(char *log_file_name, char *vehicle_log_file_name , List *vehicle_list, int garage_size);
-void checkout_vehicle_wait(char *log_file_name, List *vehicle_list, float rate);
+void register_vehicle_wait(char *log_file_name, char *vehicle_log_file_name, List *vehicle_wait_list, int garage_size);
+void checkout_vehicle_wait(char *log_file_name, List *vehicle_list, List *vehicle_wait_list, int garage_size);
 
-void register_vehicle(char *log_file_name, char *vehicle_log_file_name , List *vehicle_list, int garage_size);
+void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *vehicle_list, int garage_size);
 void checkout_vehicle(char *log_file_name, List *vehicle_list, float rate);
 
-void end_day(char *report_file_name, char *log_file_name, char * vehicle_list_file_name, char *vehicle_wait_list_file_name, List *vehicle_list, List *vehicle_wait_list, float rate);
+void end_day(char *report_file_name, char *log_file_name, List *vehicle_list, float rate);
 
 void print_vehicles(char *log_file_name, List *vehicle_list, float rate);
 
@@ -63,18 +63,23 @@ int main()
 {
     float rate = 5;
     int garage_size = 12;
+
     char *log_file_name = "log.txt";
     char *vehicle_log_file_name = "vehicle_log.txt";
+    char *report_file_name = "report.txt";
+
     char *vehicle_list_file_name = "vehicle_list.bin";
     char *vehicle_wait_list_file_name = "vehicle_wait_list.bin";
 
     List *vehicle_list = retrieve_list(vehicle_list_file_name);
     List *vehicle_wait_list = retrieve_list(vehicle_wait_list_file_name);
 
-    if (vehicle_list == NULL) {
+    if (vehicle_list == NULL)
+    {
         vehicle_list = (List *)calloc(1, sizeof(List));
     }
-    if (vehicle_wait_list == NULL) {
+    if (vehicle_wait_list == NULL)
+    {
         vehicle_wait_list = (List *)calloc(1, sizeof(List));
     }
 
@@ -90,7 +95,7 @@ int main()
             status(vehicle_list, garage_size);
             break;
         case 2:
-            register_vehicle(log_file_name, vehicle_list_file_name, vehicle_list, garage_size);
+            register_vehicle(log_file_name, vehicle_log_file_name, vehicle_list, garage_size);
             break;
         case 3:
             checkout_vehicle(log_file_name, vehicle_list, rate);
@@ -99,14 +104,17 @@ int main()
             register_vehicle_wait(log_file_name, vehicle_wait_list_file_name, vehicle_wait_list, garage_size);
             break;
         case 5:
-            checkout_vehicle_wait(log_file_name, vehicle_wait_list, rate);
+            checkout_vehicle_wait(log_file_name, vehicle_list, vehicle_wait_list, garage_size);
             break;
         case 6:
-            end_day(log_file_name)
+            end_day(report_file_name, log_file_name, vehicle_list, rate);
+            save_list(vehicle_list, vehicle_list_file_name, 0);
             break;
+        case 7:
+            save_list(vehicle_list, vehicle_list_file_name, 1);
 
-
-
+            printf("\nPrograma Finalizado\n");
+            break;
 
         case 99:
             print_vehicles(log_file_name, vehicle_list, rate);
@@ -114,7 +122,6 @@ int main()
         case 98:
             read_log(log_file_name);
             break;
-        
 
         case 10:
             printf("\nPrograma Finalizado\n");
@@ -179,9 +186,10 @@ void log_record(char *log_file_name, char *log_data)
     time(&t);
     time_data = localtime(&t);
 
-    fprintf(file_handler, "[%02d:%02d:%02d]: %s\n", time_data->tm_hour, time_data->tm_min, time_data->tm_sec, log_data);
+    fprintf(file_handler, "[%02d/%02d/%02d - %02d:%02d:%02d]: %s\n", time_data->tm_mday, time_data->tm_mon + 1, time_data->tm_year + 1900, time_data->tm_hour, time_data->tm_min, time_data->tm_sec, log_data);
 
     fclose(file_handler);
+
     return;
 }
 
@@ -213,7 +221,7 @@ void read_log(char *log_file_name)
 
     return;
 }
-void register_vehicle(char *log_file_name, char *vehicle_log_file_name , List *vehicle_list, int garage_size)
+void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *vehicle_list, int garage_size)
 {
     if (vehicle_list->actives == garage_size)
     {
@@ -221,7 +229,7 @@ void register_vehicle(char *log_file_name, char *vehicle_log_file_name , List *v
         return;
     }
 
-    vehicle_list = (List *) realloc(vehicle_list, sizeof(List) * (vehicle_list->size + 1));
+    vehicle_list = (List *)realloc(vehicle_list, sizeof(List) * (vehicle_list->size + 1));
 
     if (vehicle_list == NULL)
     {
@@ -235,13 +243,14 @@ void register_vehicle(char *log_file_name, char *vehicle_log_file_name , List *v
     fflush(stdin);
     scanf("%s", new_vehicle->plate);
 
-
     time_t currentTime;
     time(&currentTime);
     struct tm *time_data;
     time_data = localtime(&currentTime);
 
     new_vehicle->time_from = *time_data;
+
+    new_vehicle->active = 1;
 
     insert_node(log_file_name, vehicle_list, new_vehicle);
 
@@ -267,24 +276,28 @@ void checkout_vehicle(char *log_file_name, List *vehicle_list, float rate)
     {
         printf("\nNo se encontro el auto\n");
         return;
-    } else {
-        int time_diff = (int)difftime(mktime(time_data), mktime(&vehicle_data->time_from));
-        printf("\nPlaca: %s\n", vehicle_data->plate);
-        printf("Fecha de Ingreso: %ld", mktime(&vehicle_data->time_from));
-        if (time_diff < 61) {
-            printf("Tiempo de estancia: %d segundos\n", time_diff);
-        }
-        else if ((time_diff / 60) < 61) {
-            printf("Tiempo de estancia: %d minutos\n", time_diff / 60);
-        }
-        else if ((time_diff / 3600) < 24) {
-            printf("Tiempo de estancia: %d horas\n", time_diff / 3600);
-        }
-        else {
-            printf("Tiempo de estancia: %d dias\n", time_diff / 86400);
-        }
-        printf("Costo: %.2f\n", (time_diff/60) * rate);
     }
+
+    int time_diff = (int)difftime(mktime(time_data), mktime(&vehicle_data->time_from));
+    printf("\nPlaca: %s\n", vehicle_data->plate);
+    printf("Fecha de Ingreso: %d/%d/%d\n", vehicle_data->time_from.tm_mday, vehicle_data->time_from.tm_mon + 1, vehicle_data->time_from.tm_year + 1900);
+    if (time_diff < 61)
+    {
+        printf("Tiempo de estancia: %d segundos\n", time_diff);
+    }
+    else if ((time_diff / 60) < 61)
+    {
+        printf("Tiempo de estancia: %d minutos\n", time_diff / 60);
+    }
+    else if ((time_diff / 3600) < 24)
+    {
+        printf("Tiempo de estancia: %d horas\n", time_diff / 3600);
+    }
+    else
+    {
+        printf("Tiempo de estancia: %d dias\n", time_diff / 86400);
+    }
+    printf("Costo: %.2f\n", (time_diff / 60) * rate);
 
     printf("\nSe ha realizado el pago?\n");
     printf("1 - Si\n");
@@ -292,12 +305,12 @@ void checkout_vehicle(char *log_file_name, List *vehicle_list, float rate)
     printf("Seleccione una opción: ");
     int opt = 0;
     scanf("%d", &opt);
-    
+
     if (opt == 1)
     {
         vehicle_data->time_to = *time_data;
 
-        vehicle_data->amount = (difftime(mktime(time_data), mktime(&vehicle_data->time_from))/60) * rate;
+        vehicle_data->amount = (float)(difftime(mktime(time_data), mktime(&vehicle_data->time_from)) / 60) * rate;
 
         deactivate_vechicle_search(log_file_name, vehicle_list, plate);
 
@@ -305,25 +318,86 @@ void checkout_vehicle(char *log_file_name, List *vehicle_list, float rate)
     }
     return;
 }
-void end_day(char *report_file_name, char *log_file_name, char * vehicle_list_file_name, char *vehicle_wait_list_file_name, List *vehicle_list, List *vehicle_wait_list, float rate) {
+void end_day(char *report_file_name, char *log_file_name, List *vehicle_list, float rate)
+{
+    FILE *file_handler = open_file(report_file_name, "a");
+    float total_amount = 0;
 
-    // TODO FINISH THIS
+    fprintf(file_handler, "\n\n\t\t~ ~ Reporte del dia ~ ~\n");
 
-    Node *current = (Node *) calloc(1, sizeof(Node));
+    // Genera Reporte de fin de dia
+    struct Node *current = (struct Node *)calloc(1, sizeof(struct Node));
     current = vehicle_list->head;
-
     for (int i = 0; i < vehicle_list->size; i++)
     {
-        char * string = ("[%ld] : %s -> $%.2f", current->data->);
-        log_record(report_file_name, string);
+        if (current->data->active == 0)
+        {
+            total_amount += current->data->amount;
+            fprintf(file_handler, "[%d/%d/%d] %s : $%.2f\n", current->data->time_to.tm_mday, current->data->time_to.tm_mon, current->data->time_to.tm_year, current->data->plate, current->data->amount);
+        }
+
         current = current->next;
     }
-    
 
-    save_list(vehicle_list, vehicle_list_file_name);
-    save_list(vehicle_wait_list, vehicle_wait_list_file_name);
+    fprintf(file_handler, "\n\nCierre del dia: $%.2f", total_amount);
+    printf("\n\nCierre del dia: $%.2f\n\n", total_amount);
+
+    fclose(file_handler);
 }
+void register_vehicle_wait(char *log_file_name, char *vehicle_log_file_name, List *vehicle_wait_list, int garage_size) {
+    if (vehicle_wait_list->actives < garage_size)
+    {
+        printf("\nNo es posible agregar un auto en la lista de espera porque hay lugar disponible en el garage\n");
+        return;
+    }
 
+    vehicle_wait_list = (List *)realloc(vehicle_wait_list, sizeof(List) * (vehicle_wait_list->size + 1));
+
+    if (vehicle_wait_list == NULL)
+    {
+        printf("\nMemoria insuficiente\n");
+        exit(-1);
+    }
+
+    Vehicle *new_vehicle = (Vehicle *)calloc(1, sizeof(Vehicle));
+
+    printf("\nIngrese Placa: ");
+    fflush(stdin);
+    scanf("%s", new_vehicle->plate);
+
+    time_t currentTime;
+    time(&currentTime);
+    struct tm *time_data;
+    time_data = localtime(&currentTime);
+
+    new_vehicle->time_from = *time_data;
+
+    insert_node(log_file_name, vehicle_wait_list, new_vehicle);
+
+    log_record(vehicle_log_file_name, "Se agrego un vehiculo a la lista de espera");
+
+    return;
+}
+void checkout_vehicle_wait(char *log_file_name, List *vehicle_list, List *vehicle_wait_list, int garage_size) {
+    if (vehicle_wait_list->actives < garage_size)
+    {
+        printf("\nNo hay lugar disponible en el garage para mover un vehiculo de la lista de espera\n");
+        return;
+    }
+    if (vehicle_wait_list->size == 0)
+    {
+        printf("\nNo hay autos en la lista de espera\n");
+        return;
+    }
+
+    insert_node(log_file_name, vehicle_list, vehicle_wait_list->head->data);
+
+    vehicle_wait_list->head = vehicle_wait_list->head->next;
+
+    log_record(log_file_name, "Se movio un vehiculo de la lista de espera");
+
+    return;
+}
 // ! Lists Functions
 
 struct Node *create_node(Vehicle *vehicle_data, char *log_file_name)
@@ -345,50 +419,43 @@ void insert_node(char *log_file_name, List *list, Vehicle *vehicle_data)
 {
     struct Node *new_node = create_node(vehicle_data, log_file_name);
 
-
     if (list->size == 0)
     {
         list->head = new_node;
         list->tail = new_node;
-        list->size++;
     }
     else
     {
         list->tail->next = new_node;
         list->tail = new_node;
-        list->size++;
     }
+    list->size++;
+    list->actives++;
 
     log_record(log_file_name, "Se registro un nuevo auto");
 
     return;
 }
-void deactivate_vechicle_search(char *log_file_name, List *list, char *plate)
+void deactivate_vechicle_search(char *log_file_name, List *vehicle_list, char *plate)
 {
-    struct Node *current = list->head;
-
-    if (list->size == 1)
-    {
-        list->head->data->active = 0;
-        return;
-    }
+    struct Node *current = vehicle_list->head;
 
     while (current != NULL)
     {
         if (strcmp(current->data->plate, plate) == 0)
         {
             current->data->active = 0;
-            
-            list->actives--;
-            log_record(log_file_name, "Se desactivo un auto del garage");
+
+            vehicle_list->actives--;
+            log_record(log_file_name, "Se desactivo/retiro un auto del garage");
             return;
         }
         current = current->next;
     }
-    printf("\nNo se ha encontrado al auto que se desea eliminar\n");
+    printf("\nNo se ha encontrado al auto que se desea desactivar del garage\n");
     return;
 }
-Vehicle* get_vehicle_search(char *log_file_name, List *list, char *plate, float rate)
+Vehicle *get_vehicle_search(char *log_file_name, List *list, char *plate, float rate)
 {
     struct Node *current = list->head;
 
@@ -400,6 +467,8 @@ Vehicle* get_vehicle_search(char *log_file_name, List *list, char *plate, float 
         }
         current = current->next;
     }
+
+    printf("\nNo se ha encontrado al auto que se desea desactivar del garage\n");
 
     return NULL;
 }
@@ -422,8 +491,9 @@ void print_vehicles(char *log_file_name, List *vehicle_list, float rate)
     {
         printf("\n\t\tAuto:\n");
         printf("Placa: %s\n", current->data->plate);
-        printf("Fecha de entrada: %ld", mktime(&current->data->time_from));
-        printf("Monto hasta el momento: %.2f", (difftime(mktime(time_data), mktime(&current->data->time_from)) / 60) * rate);
+        printf("Fecha de entrada: %d/%d/%d\n", current->data->time_from.tm_mday, current->data->time_from.tm_mon + 1, current->data->time_from.tm_year + 1900);
+        printf("Monto hasta el momento: %.2f\n", (difftime(mktime(time_data), mktime(&current->data->time_from)) / 60) * rate);
+        printf("Estado de activo: %d\n", current->data->active);
         current = current->next;
     }
 
@@ -446,11 +516,12 @@ FILE *open_file(char *file_name, char *file_mode)
 
     return file;
 }
-
-List *retrieve_list(char *list_file_name){
+List *retrieve_list(char *list_file_name)
+{
     FILE *file_handler = fopen(list_file_name, "rb");
 
-    if (file_handler == NULL) {
+    if (file_handler == NULL)
+    {
         return NULL;
     }
 
@@ -463,7 +534,7 @@ List *retrieve_list(char *list_file_name){
         Vehicle *vehicle_data = (Vehicle *)calloc(1, sizeof(Vehicle));
 
         int flag_var = fread(vehicle_data, sizeof(Vehicle), 1, file_handler);
-        
+
         if (flag_var != 0)
         {
             insert_node(list_file_name, list, vehicle_data);
@@ -474,7 +545,8 @@ List *retrieve_list(char *list_file_name){
 
     return list;
 }
-void save_list(List *list, char *list_file_name) {
+void save_list(List *list, char *list_file_name, int flag_var)
+{ // flag_var = 0 -> dont't save inactive, flag_var = 1 -> save inactive
     if (list->size == 0)
     {
         return;
@@ -487,10 +559,13 @@ void save_list(List *list, char *list_file_name) {
 
     while (current != NULL)
     {
-        fwrite(current->data, sizeof(Vehicle), 1, file_handler);
-
         previous = current;
         current = current->next;
+
+        if (current->data->active || flag_var == 0)
+        {
+            fwrite(current->data, sizeof(Vehicle), 1, file_handler);
+        }
 
         free(previous);
     }
