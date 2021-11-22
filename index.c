@@ -119,10 +119,6 @@ int main()
             printf("\nPrograma Finalizado\n");
             exit(0);
             break;
-
-        case 10:
-            printf("\nPrograma Finalizado\n");
-            break;
         default:
             printf("\nOpción Incorrecta\n");
             break;
@@ -266,7 +262,7 @@ void checkout_vehicle(char *log_file_name, List *vehicle_list, float rate)
     {
         printf("Tiempo de estancia: %d dias\n", time_diff / 86400);
     }
-    printf("Costo: %.2f\n", (time_diff / 60) * rate);
+    printf("Costo: $%.2f\n", (time_diff / 60) * rate);
 
     printf("\nSe ha realizado el pago?\n");
     printf("1 - Si\n");
@@ -316,7 +312,7 @@ void end_day(char *report_file_name, char *log_file_name, List *vehicle_list, fl
     exit(1);
 }
 void checkout_vehicle_wait(char *log_file_name, List *vehicle_list, List *vehicle_wait_list, int garage_size) {
-    if (vehicle_wait_list->actives >= garage_size)
+    if (vehicle_list->actives >= garage_size)
     {
         printf("\nNo hay lugar disponible en el garage para mover un vehiculo de la lista de espera\n");
         return;
@@ -443,10 +439,10 @@ void print_vehicles(char *log_file_name, List *vehicle_list, float rate)
         printf("Placa: %s\n", current->data->plate);
         printf("Fecha de entrada: %d/%d/%d\n", current->data->time_from.tm_mday, current->data->time_from.tm_mon + 1, current->data->time_from.tm_year + 1900);
         if (current->data->active) {
-            printf("Monto hasta el momento: %.2f\n", (difftime(mktime(time_data), mktime(&current->data->time_from)) / 60) * rate);
+            printf("Monto hasta el momento: $%.2f\n", (difftime(mktime(time_data), mktime(&current->data->time_from)) / 60) * rate);
         }
         else {
-            printf("Monto Cobrado: %.2f\n", current->data->amount);
+            printf("Monto Cobrado: $%.2f\n", current->data->amount);
         }
         printf("Estado de activo: %d\n", current->data->active);
         current = current->next;
