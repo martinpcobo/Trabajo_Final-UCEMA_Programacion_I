@@ -40,19 +40,18 @@ void save_list(List *list, char *list_file_name, int flag_var);
 void delete_list(List *list);
 struct Node *create_node(Vehicle *vehicle_data);
 void insert_node(List *list, Vehicle *vehicle_data);
-void deactivate_vechicle_search(char *log_file_name, List *list, char *plate);
+void deactivate_vehicle_search(char *log_file_name, List *list, char *plate);
 Vehicle *get_vehicle_search(char *log_file_name, List *list, char *plate, float rate);
 
 // * Systems Functions
 int menu();
 void status(List *vehicle_list, int garage_size);
 void log_record(char *log_file_name, char *log_data);
-void read_log(char *log_file_name);
-
-void checkout_vehicle_wait(char *log_file_name, List *vehicle_list, List *vehicle_wait_list, int garage_size);
+void print_log(char *log_file_name);
 
 void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *vehicle_list, int garage_size, int mode); // mode: 0:garage 1:waitlist
 void checkout_vehicle(char *log_file_name, List *vehicle_list, float rate);
+void checkout_vehicle_wait(char *log_file_name, List *vehicle_list, List *vehicle_wait_list, int garage_size);
 
 void end_day(char *report_file_name, char *log_file_name, List *vehicle_list, float rate);
 
@@ -124,7 +123,7 @@ int main()
             print_vehicles(log_file_name, vehicle_list, rate);
             break;
         case 98:
-            read_log(log_file_name);
+            print_log(log_file_name);
             break;
 
         case 10:
@@ -153,7 +152,7 @@ int menu()
     printf("06 - Terminar el dia y Generar Reporte\n");
     printf("07 - Cerrar el programa\n");
 
-    printf("98 - Mostrar Registros\n");
+    printf("98 - Mostrar ultimos 10 registros\n");
     printf("99 - Mostrar Vehiculos en Garage\n");
 
     printf("\nIngrese una opción: ");
@@ -194,10 +193,9 @@ void log_record(char *log_file_name, char *log_data)
     return;
 }
 
-void read_log(char *log_file_name)
+void print_log(char *log_file_name)
 {
     FILE *file_handler = fopen(log_file_name, "r");
-    char *buffer = (char *)calloc(100, sizeof(char));
 
     if (file_handler == NULL)
     {
@@ -205,16 +203,16 @@ void read_log(char *log_file_name)
         return;
     }
 
+    char *buffer = (char *)calloc(256, sizeof(char));
+
     printf("\n");
 
-    while (!feof(file_handler))
+    int i = 0;
+
+    while (fgets(buffer, sizeof(char) * 256, file_handler) != NULL && i < 10)
     {
-        fflush(stdin);
-        fscanf(file_handler, " %[^\n]", buffer);
-        if (!feof(file_handler))
-        {
-            printf("%s\n", buffer);
-        }
+        printf("%s", buffer);
+        i++;
     }
 
     free(buffer);
@@ -230,7 +228,7 @@ void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *ve
         return;
     }
 
-    List *vehicle_list_reallocated = (List *)realloc(vehicle_list, sizeof(List) * (vehicle_list->size + 1));
+    vehicle_list = (List *)realloc(vehicle_list, sizeof(List) * (vehicle_list->size + 1));
 
     Vehicle *new_vehicle = (Vehicle *)calloc(1, sizeof(Vehicle));
 
@@ -240,11 +238,9 @@ void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *ve
         exit(-1);
     }
 
-    vehicle_list = vehicle_list_reallocated;
-
     printf("\nIngrese Placa: ");
     fflush(stdin);
-    scanf("%s", new_vehicle->plate);
+    fscanf("%s", &new_vehicle->plate);
 
     time_t currentTime;
     time(&currentTime);
@@ -317,7 +313,7 @@ void checkout_vehicle(char *log_file_name, List *vehicle_list, float rate)
 
         vehicle_data->amount = (float)(difftime(mktime(time_data), mktime(&vehicle_data->time_from)) / 60) * rate;
 
-        deactivate_vechicle_search(log_file_name, vehicle_list, plate);
+        deactivate_vehicle_search(log_file_name, vehicle_list, plate);
 
         return;
     }
@@ -412,7 +408,7 @@ void insert_node(List *list, Vehicle *vehicle_data)
 
     return;
 }
-void deactivate_vechicle_search(char *log_file_name, List *vehicle_list, char *plate)
+void deactivate_vehicle_search(char *log_file_name, List *vehicle_list, char *plate)
 {
     struct Node *current = vehicle_list->head;
 
@@ -503,18 +499,15 @@ List *retrieve_list(char *list_file_name)
 
     List *list = (List *)calloc(1, sizeof(List));
 
-    int flag_var = 1;
+    Vehicle *vehicle_data = (Vehicle *)calloc(1, sizeof(Vehicle));
 
-    while (flag_var)
+    while (fread(vehicle_data, sizeof(Vehicle), 1, file_handler))
     {
-        Vehicle *vehicle_data = (Vehicle *)calloc(1, sizeof(Vehicle));
-
-        int flag_var = fread(vehicle_data, sizeof(Vehicle), 1, file_handler);
-
-        if (flag_var != 0)
-        {
-            insert_node(list, vehicle_data);
+        insert_node(list, vehicle_data);
+        if (vehicle_data->active == 1) {
+            list->actives++;
         }
+        list->size++;
     }
 
     fclose(file_handler);
