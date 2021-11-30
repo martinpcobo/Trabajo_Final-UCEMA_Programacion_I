@@ -28,6 +28,15 @@ typedef struct
     int size;          // number of vehicles, active or inactive
 } List;
 
+// ! Global Variables
+#define RESET "\033[0m"
+#define RED "\033[31m"
+#define GREEN "\033[32m"
+#define WHITE "\033[37m"
+#define BOLDRED "\033[1m\033[31m"
+#define BOLDGREEN "\033[1m\033[32m"
+#define BOLDWHITE "\033[1m\033[37m"
+
 // ! Functions Declaration
 
 // * File Functions
@@ -45,7 +54,7 @@ int menu();
 void status(List *vehicle_list, int garage_size);
 void log_record(char *log_file_name, char *log_data);
 
-void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *vehicle_list, int garage_size, int mode); // mode -> 0:garage 1:waitlist
+void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *vehicle_list, int garage_size, int mode); // [mode] 0:garage | 1:waitlist
 void checkout_vehicle(char *log_file_name, List *vehicle_list, float rate);
 void checkout_vehicle_wait(char *log_file_name, List *vehicle_list, List *vehicle_wait_list, int garage_size);
 
@@ -129,16 +138,15 @@ int main()
 int menu()
 {
     int opt = 0;
-
-    printf("\n\t\tMenu\n");
-    printf("01 - Disponibilidad de garage\n");
-    printf("02 - Registrar un Vehiculo\n");
-    printf("03 - Cobrar un Vehiculo\n");
-    printf("04 - Agregar auto a lista de espera\n");
-    printf("05 - Mover auto de lista de espera\n");
-    printf("06 - Terminar el dia y Generar Reporte\n");
-    printf("07 - Mostrar Vehiculos en Garage\n");
-    printf("08 - Cerrar el programa\n");
+    printf(BOLDWHITE "\n\t\tMenu\n" RESET);
+    printf(BOLDWHITE "01)" RESET " Disponibilidad de garage\n");
+    printf(BOLDWHITE "02)" RESET " Registrar un Vehiculo\n");
+    printf(BOLDWHITE "03)" RESET " Cobrar un Vehiculo\n");
+    printf(BOLDWHITE "04)" RESET " Agregar auto a lista de espera\n");
+    printf(BOLDWHITE "05)" RESET " Mover auto de lista de espera\n");
+    printf(BOLDWHITE "06)" RESET " Terminar el dia y Generar Reporte\n");
+    printf(BOLDWHITE "07)" RESET " Mostrar Vehiculos en Garage\n");
+    printf(BOLDWHITE "08)" RESET " Cerrar el programa\n");
 
     printf("\nIngrese una opción: ");
     fflush(stdin);
@@ -152,12 +160,12 @@ void status(List *vehicle_list, int garage_size)
 {
     if ((garage_size - vehicle_list->actives) > 0)
     {
-        printf("[Hay lugar disponible]\n");
+        printf(BOLDGREEN "[Hay lugar disponible]\n" RESET);
         printf("Espacios disponibles en garage: %d\n", (garage_size - vehicle_list->actives));
     }
     else
     {
-        printf("\n[No hay lugar disponible]\n");
+        printf(BOLDRED "\n[No hay lugar disponible]\n" RESET);
     }
     printf("Autos en garage: %d\n", vehicle_list->actives);
     return;
@@ -178,11 +186,16 @@ void log_record(char *log_file_name, char *log_data)
     return;
 }
 
-void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *vehicle_list, int garage_size, int mode)
+void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *vehicle_list, int garage_size, int mode)// [mode] 0:garage | 1:waitlist
 {
     if (mode == 0 && vehicle_list->actives >= garage_size)
     {
         printf("\nNo se puede agregar otro auto, garage lleno\n");
+        return;
+    }
+    if (mode == 1 && vehicle_list->actives < garage_size)
+    {
+        printf(RED "\nTodavia hay lugar disponible en el garage\n" RESET);
         return;
     }
 
@@ -267,9 +280,9 @@ void checkout_vehicle(char *log_file_name, List *vehicle_list, float rate)
     }
     printf("Costo: $%.2f\n", (time_diff / 60) * rate);
 
-    printf("\nSe ha realizado el pago?\n");
-    printf("1 - Si\n");
-    printf("2 - No\n");
+    printf(BOLDWHITE "\nSe ha realizado el pago?\n" RESET);
+    printf("1) Si\n");
+    printf("2) No\n");
     printf("Seleccione una opción: ");
     int opt = 0;
     scanf("%d", &opt);
@@ -410,7 +423,7 @@ void print_vehicles(char *log_file_name, List *vehicle_list, float rate)
 {
     if (vehicle_list->size == 0)
     {
-        printf("\nNo hay autos registrados\n");
+        printf(BOLDRED "\nNo hay autos registrados\n" RESET);
         log_record(log_file_name, "Se trato de imprimir los autos en garage, pero esta vacio");
         return;
     }
