@@ -13,6 +13,8 @@ Consideramos que el programa, debería ser lo más simple y eficiente posible, p
 
 Decidimos mantener a los autos que fueron retirados del garaje en la lista, pero, con la diferencia de que dichos autos van a tener un atributo con un valor (cero) que indiquen su estado de inactividad. Así mismo, la estructura de listas va a contener un atributo que indique la cantidad de autos activos y otro que indique la cantidad de autos totales (activos e inactivos).
 
+<img src="./assets/conceptual_design.svg"></img>
+
 
 ## Prototipado y Descripción de funciones
 
