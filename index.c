@@ -33,7 +33,6 @@ typedef struct
 #define RED "\033[31m"
 #define GREEN "\033[32m"
 #define WHITE "\033[37m"
-#define BOLDBLACK "\033[1m\033[30m"
 #define BOLDRED "\033[1m\033[31m"
 #define BOLDGREEN "\033[1m\033[32m"
 #define BOLDWHITE "\033[1m\033[37m"
@@ -43,7 +42,7 @@ typedef struct
 // * File Functions
 FILE *open_file(char *file_name, char *file_mode);
 List *retrieve_list(char *list_file_name);
-void save_list(List *list, char *list_file_name, int flag_var);
+void save_list(List *list, char *list_file_name, int mode, int free_flag); // [mode] 0:save innactivated & 1:save all | [free_flag] 0:don't free | 1:free
 
 // * Lists Functions
 struct Node *create_node(Vehicle *vehicle_data);
@@ -55,7 +54,7 @@ int menu();
 void status(List *vehicle_list, int garage_size);
 void log_record(char *log_file_name, char *log_data);
 
-void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *vehicle_list, int garage_size, int mode); // [mode] 0:garage | 1:waitlist
+void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *vehicle_list, int garage_size, int mode); // [mode] 0:garage && 1:waitlist
 void checkout_vehicle(char *log_file_name, List *vehicle_list, float rate);
 void checkout_vehicle_wait(char *log_file_name, List *vehicle_list, List *vehicle_wait_list, int garage_size);
 
@@ -102,20 +101,25 @@ int main()
             break;
         case 2:
             register_vehicle(log_file_name, vehicle_log_file_name, vehicle_list, garage_size, 0);
+            save_list(vehicle_list, vehicle_list_file_name, 0, 0);
             break;
         case 3:
             checkout_vehicle(log_file_name, vehicle_list, rate);
+            save_list(vehicle_list, vehicle_list_file_name, 0, 0);
             break;
         case 4:
             register_vehicle(log_file_name, vehicle_log_file_name, vehicle_wait_list, garage_size, 1);
+            save_list(vehicle_wait_list, vehicle_wait_list_file_name, 0, 0);
             break;
         case 5:
             checkout_vehicle_wait(log_file_name, vehicle_list, vehicle_wait_list, garage_size);
+            save_list(vehicle_list, vehicle_list_file_name, 0, 0);
+            save_list(vehicle_wait_list, vehicle_wait_list_file_name, 0, 0);
             break;
         case 6:
             end_day(report_file_name, log_file_name, vehicle_list, rate);
-            save_list(vehicle_list, vehicle_list_file_name, 0);
-            save_list(vehicle_wait_list, vehicle_wait_list_file_name, 1);
+            save_list(vehicle_list, vehicle_list_file_name, 0, 1);
+            save_list(vehicle_wait_list, vehicle_wait_list_file_name, 1, 1);
 
             exit(0);
             break;
@@ -123,8 +127,8 @@ int main()
             print_vehicles(log_file_name, vehicle_list, rate);
             break;
         case 8:
-            save_list(vehicle_list, vehicle_list_file_name, 1);
-            save_list(vehicle_wait_list, vehicle_wait_list_file_name, 0);
+            save_list(vehicle_wait_list, vehicle_wait_list_file_name, 0, 1);
+            save_list(vehicle_list, vehicle_list_file_name, 0, 1);
 
             printf("\nPrograma Finalizado\n");
             exit(0);
@@ -193,11 +197,6 @@ void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *ve
     if (mode == 0 && vehicle_list->actives >= garage_size)
     {
         printf("\nNo se puede agregar otro auto, garage lleno\n");
-        return;
-    }
-    if (mode == 1 && vehicle_list->actives >= garage_size)
-    {
-        printf(RED "\nTodavia hay lugar disponible en el garage\n" RESET);
         return;
     }
 
@@ -319,7 +318,7 @@ void end_day(char *report_file_name, char *log_file_name, List *vehicle_list, fl
         if (current->data->active == 0)
         {
             total_amount += current->data->amount;
-            fprintf(file_handler, "[%d/%d/%d] %s : $%.2f\n", current->data->time_to.tm_mday, current->data->time_to.tm_mon, current->data->time_to.tm_year, current->data->plate, current->data->amount);
+            fprintf(file_handler, "[%d/%d/%d] %s : $%.2f\n", current->data->time_from.tm_mday, current->data->time_from.tm_mon + 1, current->data->time_from.tm_year + 1900, current->data->plate, current->data->amount);
         }
 
         current = current->next;
@@ -336,12 +335,12 @@ void checkout_vehicle_wait(char *log_file_name, List *vehicle_list, List *vehicl
 {
     if (vehicle_list->actives >= garage_size)
     {
-        printf(RED "\nNo hay lugar disponible en el garage para mover un vehiculo de la lista de espera\n" RESET);
+        printf(BOLDRED "\nNo hay lugar disponible en el garage para mover un vehiculo de la lista de espera\n" RESET);
         return;
     }
     if (vehicle_wait_list->size == 0)
     {
-        printf(RED "\nNo hay autos en la lista de espera\n" RESET);
+        printf(BOLDRED "\nNo hay autos en la lista de espera\n" RESET);
         return;
     }
 
@@ -440,7 +439,7 @@ void print_vehicles(char *log_file_name, List *vehicle_list, float rate)
 
     for (int i = 0; i < vehicle_list->size; i++)
     {
-        printf(WHITE"\n\t  [Vehiculo]\n"RESET);
+        printf(WHITE "\n\t  [Vehiculo]\n" RESET);
         printf("Placa: %s\n", current->data->plate);
         printf("Fecha de entrada: %d/%d/%d\n", current->data->time_from.tm_mday, current->data->time_from.tm_mon + 1, current->data->time_from.tm_year + 1900);
         if (current->data->active)
@@ -504,13 +503,13 @@ List *retrieve_list(char *list_file_name)
 
     return list;
 }
-void save_list(List *list, char *list_file_name, int flag_var)
-{ // flag_var = 0 -> dont't save inactive, flag_var = 1 -> save inactive
-    if (list->actives == 0 && flag_var == 0)
+void save_list(List *list, char *list_file_name, int mode, int free_flag) // [mode] 0:save innactivated & 1:save all | [free_flag] 0:don't free | 1:free
+{
+    if (list->actives == 0 && mode == 0)
     {
         return;
     }
-    else if (list->size == 0 && flag_var == 1)
+    else if (list->size == 0 && mode == 1)
     {
         return;
     }
@@ -523,7 +522,7 @@ void save_list(List *list, char *list_file_name, int flag_var)
     while (current != NULL)
     {
 
-        if (current->data->active == 1 || flag_var == 0)
+        if (current->data->active == 1 || mode == 0)
         {
             fwrite(current->data, sizeof(Vehicle), 1, file_handler);
         }
@@ -531,11 +530,17 @@ void save_list(List *list, char *list_file_name, int flag_var)
         previous = current;
         current = current->next;
 
-        free(previous->data);
-        free(previous);
+        if (free_flag)
+        {
+            free(previous->data);
+            free(previous);
+        }
     }
 
-    free(list);
+    if (free_flag)
+    {
+        free(list);
+    }
 
     fclose(file_handler);
 }
