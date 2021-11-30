@@ -33,6 +33,7 @@ typedef struct
 #define RED "\033[31m"
 #define GREEN "\033[32m"
 #define WHITE "\033[37m"
+#define BOLDBLACK "\033[1m\033[30m"
 #define BOLDRED "\033[1m\033[31m"
 #define BOLDGREEN "\033[1m\033[32m"
 #define BOLDWHITE "\033[1m\033[37m"
@@ -194,7 +195,7 @@ void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *ve
         printf("\nNo se puede agregar otro auto, garage lleno\n");
         return;
     }
-    if (mode == 1 && vehicle_list->actives < garage_size)
+    if (mode == 1 && vehicle_list->actives >= garage_size)
     {
         printf(RED "\nTodavia hay lugar disponible en el garage\n" RESET);
         return;
@@ -335,12 +336,12 @@ void checkout_vehicle_wait(char *log_file_name, List *vehicle_list, List *vehicl
 {
     if (vehicle_list->actives >= garage_size)
     {
-        printf("\nNo hay lugar disponible en el garage para mover un vehiculo de la lista de espera\n");
+        printf(RED "\nNo hay lugar disponible en el garage para mover un vehiculo de la lista de espera\n" RESET);
         return;
     }
     if (vehicle_wait_list->size == 0)
     {
-        printf("\nNo hay autos en la lista de espera\n");
+        printf(RED "\nNo hay autos en la lista de espera\n" RESET);
         return;
     }
 
@@ -429,6 +430,8 @@ void print_vehicles(char *log_file_name, List *vehicle_list, float rate)
         return;
     }
 
+    printf(BOLDWHITE "\n\n\t\t~ Lista de autos en el garage ~\n" RESET);
+
     time_t currentTime;
     time(&currentTime);
     struct tm *time_data = localtime(&currentTime);
@@ -437,7 +440,7 @@ void print_vehicles(char *log_file_name, List *vehicle_list, float rate)
 
     for (int i = 0; i < vehicle_list->size; i++)
     {
-        printf("\n\t\tAuto:\n");
+        printf(WHITE"\n\t  [Vehiculo]\n"RESET);
         printf("Placa: %s\n", current->data->plate);
         printf("Fecha de entrada: %d/%d/%d\n", current->data->time_from.tm_mday, current->data->time_from.tm_mon + 1, current->data->time_from.tm_year + 1900);
         if (current->data->active)
