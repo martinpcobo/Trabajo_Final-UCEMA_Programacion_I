@@ -114,6 +114,9 @@ int main()
         case 6:
             end_day(report_file_name, log_file_name, vehicle_list, rate);
             save_list(vehicle_list, vehicle_list_file_name, 0);
+            save_list(vehicle_wait_list, vehicle_wait_list_file_name, 1);
+
+            exit(0);
             break;
         case 7:
             print_vehicles(log_file_name, vehicle_list, rate);
@@ -130,8 +133,6 @@ int main()
             break;
         }
     }
-
-    free(vehicle_list);
 
     return 0;
 }
@@ -186,7 +187,7 @@ void log_record(char *log_file_name, char *log_data)
     return;
 }
 
-void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *vehicle_list, int garage_size, int mode)// [mode] 0:garage | 1:waitlist
+void register_vehicle(char *log_file_name, char *vehicle_log_file_name, List *vehicle_list, int garage_size, int mode) // [mode] 0:garage | 1:waitlist
 {
     if (mode == 0 && vehicle_list->actives >= garage_size)
     {
