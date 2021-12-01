@@ -5,16 +5,18 @@ El programa presentado consiste, en pocas palabras, en un sistema de gestión de
 Las funcionalidades que están incluidas en dicho programa consisten en poder saber en todo momento cuantos vehículos se encuentran en el garaje, ingreso y egreso de vehículos, reportar facturación, gestión de lista de espera, entre otras.
 
 ## Diseño Conceptual
+
 Este programa se diseño teniendo en cuenta a la persistencia de datos en memoria y en archivos. Él mismo, comienza tratando de recuperar la lista de vehículos registrados, tanto en lista de espera como en el mismo garaje, en caso de existir.
 
 Luego, se le va a mostrar al usuario un menú de opciones, en donde él mismo deberá seleccionar una. Dependiendo de qué opción elija, se va a ejecutar diferentes funciones. Para poder cerrar el programa de manera correcta, se diseño una opción que, de ser seleccionada, va a persistir la lista actual de vehículos y lista de espera, en archivos binarios para luego ser recuperados cuando se inicie el programa nuevamente.
+
+Un aspecto importante que queremos destacar es que luego de cada modificación a la lista, se va a persistir la lista que se haya modificado en archivos binarios. Esto debido al hecho de que, si por alguna razón el programa se detiene, se persisten los datos hasta el ultimo momento.
 
 Consideramos que el programa, debería ser lo más simple y eficiente posible, por lo que se reutilizaron funciones, a veces pasándole por parámetros una variable que indicará el modo de la función.
 
 Decidimos mantener a los autos que fueron retirados del garaje en la lista, pero, con la diferencia de que dichos autos van a tener un atributo con un valor (cero) que indiquen su estado de inactividad. Así mismo, la estructura de listas va a contener un atributo que indique la cantidad de autos activos y otro que indique la cantidad de autos totales (activos e inactivos).
 
 <img src="./assets/conceptual_design.svg"></img>
-
 
 ## Prototipado y Descripción de funciones
 
@@ -43,7 +45,7 @@ FILE *open_file(char *file_name, char *file_mode)
 
 Esta función va a recibir un único parámetro, un vector conteniendo el nombre del archivo binario que almacena los distintos nodos de la lista enlazada y devolverá el puntero a un dato del tipo `List` que corresponde a la lista recuperada.
 
-Primero, se abre el archivo en modo `rb` o *read binary* y se almacena en un puntero del tipo `FILE`. Mediante un condicional, en caso de que el archivo de la lista no exista, se retornará un `NULL`.
+Primero, se abre el archivo en modo `rb` o _read binary_ y se almacena en un puntero del tipo `FILE`. Mediante un condicional, en caso de que el archivo de la lista no exista, se retornará un `NULL`.
 
 Luego, se reserva un lugar en la memoria dinámica (inicializado en cero) del tamaño y tipo `List` para almacenar una lista simplemente enlazada. Mediante un bucle, con la condición de que una variable del tipo flag sea distinta de cero, se genera por cada iteración espacio en la memoria dinámica (inicializado en cero) para almacenar los datos de un vehículo. Se va a leer del archivo binario abierto, el tamaño de un dato del tipo `Vehicle` en el espacio reservado anteriormente y lo que devuelva la lectura actual sera almacenado en una variable del tipo flag.
 
@@ -86,21 +88,21 @@ List *retrieve_list(char *list_file_name)
 
 ### save_list
 
-Esta función va a recibir por parámetros un puntero a un dato del tipo `List` que corresponde a una lista simplemente enlazada, un vector que corresponde el nombre del archivo a guardar de la lista y un entero que corresponde al modo de guardado.
+Esta función va a recibir por parámetros un puntero a un dato del tipo `List` que corresponde a una lista simplemente enlazada, un vector que corresponde el nombre del archivo a guardar de la lista y dos enteros que corresponden al modo de guardado y a la liberación o no de memoria de dicha lista.
 
-La función va a tener dos modos. El primero, correspondiente al valor `0`, no va a almacenar a los vehículos en estado inactivo y el segundo, de valor `1`, los va a almacenar.
+La función va a tener dos modos. El primero, correspondiente al valor `0`, no va a almacenar a los vehículos en estado inactivo y el segundo, de valor `1`, los va a almacenar. Ademas, se le va a indicar si debe liberar el espacio de las listas, dónde el valor `1` elimina el espacio reservado y el valor `0` no lo hace.
 
 Mediante un condicional, en caso de que la cantidad de vehículos activos en la lista sea igual a cero y el modo de la lista indique no se deben guardar vehículos inactivos, se finaliza la función sin retornar nada. En el caso alterno, de que el tamaño de la lista sea igual a cero y el modo de la función indique qué se deben guardar inactivos, se va a finalizar la función sin retornar nada.
 
-Una vez que se verifique que se debe guardar una lista, se abre un archivo con la función creada `open_file` pasándole por parámetros el nombre del archivo de la lista, previamente recibido por parámetros, y el modo que va a ser `wb` o *write binary*.
+Una vez que se verifique que se debe guardar una lista, se abre un archivo con la función creada `open_file` pasándole por parámetros el nombre del archivo de la lista, previamente recibido por parámetros, y el modo que va a ser `wb` o _write binary_.
 
-Se va a crear un puntero a una estructura `Node` llamado *current* que va a apuntar a la cabeza de la lista y otro llamado *previous* que inicialmente apunta a nada.
+Se va a crear un puntero a una estructura `Node` llamado _current_ que va a apuntar a la cabeza de la lista y otro llamado _previous_ que inicialmente apunta a nada.
 
-Mediante un bucle condicional, donde el puntero *current* debe ser diferente a `NULL`, se va a escribir en el archivo binario abierto un vehículo correspondiente al puntero *current* si dicho vehículo tiene estado activo o el modo de la lista indica que se deben almacenar los inactivos también.
+Mediante un bucle condicional, donde el puntero _current_ debe ser diferente a `NULL`, se va a escribir en el archivo binario abierto un vehículo correspondiente al puntero _current_ si dicho vehículo tiene estado activo o el modo de la lista indica que se deben almacenar los inactivos también.
 
-Una vez pasado el condicional, se va a cambiar la dirección a la que apunta el puntero *previous* a la que apunta el puntero *current* y el de el puntero *current* a la dirección del siguiente nodo almacenado dentro de si mismo, porque es una lista y cada nodo apunta al siguiente. Después, se libera la memoria reservada dinámicamente para el vehículo ya grabado en el archivo y la del nodo anterior ya que no va a ser utilizado nuevamente.
+Una vez pasado el condicional, se va a cambiar la dirección a la que apunta el puntero _previous_ a la que apunta el puntero _current_ y el de el puntero _current_ a la dirección del siguiente nodo almacenado dentro de si mismo, porque es una lista y cada nodo apunta al siguiente. Después, en caso de que el parámetro de `free_flag` lo indique, se libera la memoria reservada dinámicamente para el vehículo ya grabado en el archivo y la del nodo anterior ya que no va a ser utilizado nuevamente.
 
-Cuando el bucle se termine, que se hayan guardado todos los vehículos en el archivo binario, se va a liberar el espacio asignado dinámicamente a la lista y se cierra el archivo.
+Cuando el bucle se termine, que se hayan guardado todos los vehículos en el archivo binario, en caso de que lo indique el parámetro, se va a liberar el espacio asignado dinámicamente a la lista y se cierra el archivo.
 
 ```c
 void save_list(List *list, char *list_file_name, int flag_var)
@@ -199,11 +201,11 @@ void insert_node(List *list, Vehicle *vehicle_data)
 
 ### get_vehicle_search
 
-Esta función recibe por parámetros dos vectores correspondientes al nombre del archivo de registros y a la placa del auto a buscar, un puntero a un dato del tipo `List` y un número racional correspondiente a la tarifa por minuto. La función va  a devolver un puntero a un dato del tipo `Vehicle`.
+Esta función recibe por parámetros dos vectores correspondientes al nombre del archivo de registros y a la placa del auto a buscar, un puntero a un dato del tipo `List` y un número racional correspondiente a la tarifa por minuto. La función va a devolver un puntero a un dato del tipo `Vehicle`.
 
 Se va a crear un puntero a una estructura Node que se le va a asignar la dirección de memoria del atributo `head` o cabeza de la lista. Mediante un bucle, verificando que el puntero creado anteriormente sea diferente a `NULL`, se va a verificar que el tributo `plate` de la estructura del tipo `Vechicle` apuntada por el puntero del atributo `data` del puntero creado anteriormente, sea igual al vector de caracteres pasado por parámetros correspondiente a la placa del auto a buscar.
 
-En el caso de que sean iguales, se retorna el puntero al vehículo al cual corresponde, almacenado en el puntero creado anteriormente que se verifico. Caso contrario, se asigna al puntero creado anteriormente (*current)*, a la dirección de memoria del siguiente nodo almacenado en sí mismo.
+En el caso de que sean iguales, se retorna el puntero al vehículo al cual corresponde, almacenado en el puntero creado anteriormente que se verifico. Caso contrario, se asigna al puntero creado anteriormente (_current)_, a la dirección de memoria del siguiente nodo almacenado en sí mismo.
 
 Si el bucle se termina, significa que no se encontrón ningún vehículo con la placa deseada, por lo que se muestra por pantalla que no se encontró y se termina la función retornando `NULL`.
 
@@ -257,11 +259,11 @@ void log_record(char *log_file_name, char *log_data)
 
 ### register_vehicle
 
-La función recibe como parámetros dos vector de caracteres, que corresponden al nombre de archivo de registros y otro al nombre del registro de patentes, un puntero a un dato del tipo `List`, que contiene una lista simplemente enlazada, una variable de tipo int, que representa la máxima cantidad de vehículos que entran en el garaje, y por último, una variable de tipo int que refleja si se quiere registrar el vehículo en el garaje o en la lista de espera. La función no devuelve nada. 
+La función recibe como parámetros dos vector de caracteres, que corresponden al nombre de archivo de registros y otro al nombre del registro de patentes, un puntero a un dato del tipo `List`, que contiene una lista simplemente enlazada, una variable de tipo int, que representa la máxima cantidad de vehículos que entran en el garaje, y por último, una variable de tipo int que refleja si se quiere registrar el vehículo en el garaje o en la lista de espera. La función no devuelve nada.
 
-Dentro de la función, mediante una condicional, se verifica si la intención del registro es para el garaje (no para la lista de espera) y, ademas, si el garaje esta lleno de vehículos. En ese caso, se muestra en pantalla que no se pueden agregar más y se vuelve a la función del main. Caso contrario, la función sigue. 
+Dentro de la función, mediante una condicional, se verifica si la intención del registro es para el garaje (no para la lista de espera) y, ademas, si el garaje esta lleno de vehículos. En ese caso, se muestra en pantalla que no se pueden agregar más y se vuelve a la función del main. Caso contrario, la función sigue.
 
-Se reserva espacio en la memoria dinámica inicializado en cero correspondiente a un dato del tipo `Vehicle` y se almacena la dirección en un puntero llamado *new_vehicle*. Mediante un condicional, se chequea que se haya reservado memoria correctamente, en caso de que no se muestra un mensaje de error por pantalla y se termina el programa.
+Se reserva espacio en la memoria dinámica inicializado en cero correspondiente a un dato del tipo `Vehicle` y se almacena la dirección en un puntero llamado _new_vehicle_. Mediante un condicional, se chequea que se haya reservado memoria correctamente, en caso de que no se muestra un mensaje de error por pantalla y se termina el programa.
 
 Luego, el programa pedirá al usuario el ingrese de la placa.
 
@@ -269,7 +271,7 @@ Si la intención es registrar al vehículo en la lista del garaje, se almacena e
 
 Caso contrario, si se desea ingresar al vehículo a la lista de espera, se le asigna a `active` el valor de `0`, por las dudas.
 
-Luego, se llama a la función `insert_node` para crear crear y agregar el nodo a la lista, pasándole por parámetros la dirección de memoria a un dato del tipo `List`, donde se almacenara el nodo, y el dato del tipo `Vehicle` para el cual se reservo memoria y modifico la información del mismo anteriormente. 
+Luego, se llama a la función `insert_node` para crear crear y agregar el nodo a la lista, pasándole por parámetros la dirección de memoria a un dato del tipo `List`, donde se almacenara el nodo, y el dato del tipo `Vehicle` para el cual se reservo memoria y modifico la información del mismo anteriormente.
 
 Por ultimo, se llama a la función `log_record` para guardar en el archivo de registros que se ha registrado un nuevo auto y se vuelve a llamar a esa función, pero esta vez, se envía por parámetro el archivo del nombre del archivo de registros y la placa del auto.
 
@@ -403,7 +405,7 @@ Se establecen condicionales. En el primero, si la cantidad de autos activos en l
 
 En caso de que no hayan ocurrido ninguna de las dos condiciones evaluadas anteriormente, se almacena en una variable del tipo `time_t` la fecha y horario actual para después, ser asignada a el dato del tipo `tm` que apunta un puntero mediante la función `localtime()`.
 
-Se le va a asignar al atributo `time_from` de la estructura `Vehicle`, que es apuntado por el puntero `data` del nodo ubicado en la cabeza de la lista de espera,  la fecha asignada anteriormente a la estructura `tm`. También, al atributo active de la misma estructura va ser asignado el número `1` que corresponde al estado de activo.
+Se le va a asignar al atributo `time_from` de la estructura `Vehicle`, que es apuntado por el puntero `data` del nodo ubicado en la cabeza de la lista de espera, la fecha asignada anteriormente a la estructura `tm`. También, al atributo active de la misma estructura va ser asignado el número `1` que corresponde al estado de activo.
 
 Se ve a llamar a la función `insert_node`, pasándole por parámetros el puntero a la lista simplemente enlazada de vehículos normal recibida por parámetros, y primer nodo de la lista de espera, también pasada su dirección por parámetros, que fue modificada previamente. También, se llama a la función `log_record`, pasándole por parámetros el nombre del archivo de registros y el string indicando que se registro un nuevo auto.
 
@@ -513,7 +515,7 @@ void status(List *vehicle_list, int garage_size)
 
 La función recibe por parámetros dos vectores de caracteres, los cuales corresponden a los nombres de los archivos de reportes y de registros, un puntero a un dato de tipo `List` que corresponde a una lista simplemente enlazada y una variable de tipo `float` con la tarifa por minuto. La función no devuelve nada.
 
-Se abre el archivo de reportes en el modo `a` de *append* para poder modificarlo agregando la información al final de este. Se escribe en el archivo un separador para distinguir el dia del reporte, se reserva memoria dinámica inicializada en cero para almacenar una estructura `Node` y se almacena su dirección de memoria en el puntero *current*. Luego, este apuntará a la dirección de memoria almacenada en el atributo *head* de la lista simplemente enlazada pasada por parámetros.
+Se abre el archivo de reportes en el modo `a` de _append_ para poder modificarlo agregando la información al final de este. Se escribe en el archivo un separador para distinguir el dia del reporte, se reserva memoria dinámica inicializada en cero para almacenar una estructura `Node` y se almacena su dirección de memoria en el puntero _current_. Luego, este apuntará a la dirección de memoria almacenada en el atributo _head_ de la lista simplemente enlazada pasada por parámetros.
 
 Mediante un bucle, se itera por todos los nodos de la lista, mientras que el nodo tengo un vehículo desactivado (ósea que ya fue retirado y facturado), sumando el valor guardado en el atributo `amount` del dato del tipo `Vehicle` que apunta el atributo `data` de la estructura `Node` creada anteriormente, a una variable que refleja la cantidad facturada en el día.
 
@@ -562,7 +564,7 @@ Una vez realizada la verificación, se almacena en una variable del tipo `time_t
 
 Se crea un un puntero a una estructura `Node` el cual apuntará al primer nodo de nuestra lista de vehículos. Mediante un bucle se busca imprimir la información de los vehículos almacenados. Se tiene en cuenta, a la hora de imprimir, si el auto sigue o no activo en la lista, de manera tal que, el programa mostrará apropiadamente el monto que se debe pagar hasta aquél momento o el que ya fue abonado. El monto a cobrar se obtiene gracias a la función `difftime`, esta devuelve la diferencia de tiempo, entre la llegada del auto al garaje y el tiempo actual, en segundos, es por eso que luego se la divide por 60 y multiplica por 5 (monto a cobrar por minuto). El bucle terminará cuando este imprima la cantidad total de autos almacenados sabeindolo a partir del atributo `size` de la lista pasada por parámetros.
 
-El puntero de la estructura `Node` apuntará al siguiente nodo de la lista, cada vez que se haya terminado de imprimir la información de un vehículo. Esto se logra gracias a que cada nodo tiene, dentro de su estructura, una puntero del tipo `Vehicle`, la cual apunta al siguiente nodo de la lista. 
+El puntero de la estructura `Node` apuntará al siguiente nodo de la lista, cada vez que se haya terminado de imprimir la información de un vehículo. Esto se logra gracias a que cada nodo tiene, dentro de su estructura, una puntero del tipo `Vehicle`, la cual apunta al siguiente nodo de la lista.
 
 Por último, se llama a la función `log_record` para registrar la la acción realizada en el archivo `log_file_name`.
 
