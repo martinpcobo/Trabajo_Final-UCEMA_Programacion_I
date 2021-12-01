@@ -1,3 +1,7 @@
+[![GitHub Profile](https://img.shields.io/badge/Martín_Pérez_Cobo-informational?style=for-the-badge&logo=GitHub&logoColor=ffffff&color=23272d)](https://github.com/Martinpc4)
+[![GitHub Profile](https://img.shields.io/badge/Nicole_Selem-informational?style=for-the-badge&logo=GitHub&logoColor=ffffff&color=23272d)](https://github.com/nicolesel)
+[![GitHub Profile](https://img.shields.io/badge/Mateo_Alonso-informational?style=for-the-badge&logo=GitHub&logoColor=ffffff&color=23272d)](https://github.com/mateoalonsoda)
+
 ## Introducción
 
 El programa presentado consiste, en pocas palabras, en un sistema de gestión de vehículos que controla el ingreso y egreso de vehículos de un garaje comercial con lista de espera. Para lograr dicho objetivo, el sistema debe registrar de manera persistente los autos que ingresan y los autos que egresan guardando información relevante como cuanto tiempo estuvo en el garaje, matricula, identificador y el precio que debió pagar por la estadía.
