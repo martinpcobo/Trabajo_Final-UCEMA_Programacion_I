@@ -92,29 +92,30 @@ List *retrieve_list(char *list_file_name)
 
 ### save_list
 
-Esta función va a recibir por parámetros un puntero a un dato del tipo `List` que corresponde a una lista simplemente enlazada, un vector que corresponde el nombre del archivo a guardar de la lista y dos enteros que corresponden al modo de guardado y a la liberación o no de memoria de dicha lista.
+Esta función va a recibir por parámetros un puntero a un dato del tipo `List` que corresponde a una lista simplemente enlazada, un vector que corresponde el nombre del archivo a guardar de la lista y dos enteros que corresponden al modo de guardado y a  la liberación o no de memoria de dicha lista.
 
 La función va a tener dos modos. El primero, correspondiente al valor `0`, no va a almacenar a los vehículos en estado inactivo y el segundo, de valor `1`, los va a almacenar. Ademas, se le va a indicar si debe liberar el espacio de las listas, dónde el valor `1` elimina el espacio reservado y el valor `0` no lo hace.
 
 Mediante un condicional, en caso de que la cantidad de vehículos activos en la lista sea igual a cero y el modo de la lista indique no se deben guardar vehículos inactivos, se finaliza la función sin retornar nada. En el caso alterno, de que el tamaño de la lista sea igual a cero y el modo de la función indique qué se deben guardar inactivos, se va a finalizar la función sin retornar nada.
 
-Una vez que se verifique que se debe guardar una lista, se abre un archivo con la función creada `open_file` pasándole por parámetros el nombre del archivo de la lista, previamente recibido por parámetros, y el modo que va a ser `wb` o _write binary_.
+Una vez que se verifique que se debe guardar una lista, se abre un archivo con la función creada `open_file` pasándole por parámetros el nombre del archivo de la lista, previamente recibido por parámetros, y el modo que va a ser `wb` o *write binary*.
 
-Se va a crear un puntero a una estructura `Node` llamado _current_ que va a apuntar a la cabeza de la lista y otro llamado _previous_ que inicialmente apunta a nada.
+Se va a crear un puntero a una estructura `Node` llamado *current* que va a apuntar a la cabeza de la lista y otro llamado *previous* que inicialmente apunta a nada.
 
-Mediante un bucle condicional, donde el puntero _current_ debe ser diferente a `NULL`, se va a escribir en el archivo binario abierto un vehículo correspondiente al puntero _current_ si dicho vehículo tiene estado activo o el modo de la lista indica que se deben almacenar los inactivos también.
+Mediante un bucle condicional, donde el puntero *current* debe ser diferente a `NULL`, se va a escribir en el archivo binario abierto un vehículo correspondiente al puntero *current* si dicho vehículo tiene estado activo o el modo de la lista indica que se deben almacenar los inactivos también.
 
-Una vez pasado el condicional, se va a cambiar la dirección a la que apunta el puntero _previous_ a la que apunta el puntero _current_ y el de el puntero _current_ a la dirección del siguiente nodo almacenado dentro de si mismo, porque es una lista y cada nodo apunta al siguiente. Después, en caso de que el parámetro de `free_flag` lo indique, se libera la memoria reservada dinámicamente para el vehículo ya grabado en el archivo y la del nodo anterior ya que no va a ser utilizado nuevamente.
+Una vez pasado el condicional, se va a cambiar la dirección a la que apunta el puntero *previous* a la que apunta el puntero *current* y el de el puntero *current* a la dirección del siguiente nodo almacenado dentro de si mismo, porque es una lista y cada nodo apunta al siguiente. Después, en caso de que el parámetro de `free_flag` lo indique, se libera la memoria reservada dinámicamente para el vehículo ya grabado en el archivo y la del nodo anterior ya que no va a ser utilizado nuevamente.
 
 Cuando el bucle se termine, que se hayan guardado todos los vehículos en el archivo binario, en caso de que lo indique el parámetro, se va a liberar el espacio asignado dinámicamente a la lista y se cierra el archivo.
 
 ```c
-void save_list(List *list, char *list_file_name, int flag_var)
-{ // flag_var = 0 -> dont't save inactive, flag_var = 1 -> save inactive
-    if (list->actives == 0 && flag_var == 0)
+void save_list(List *list, char *list_file_name, int mode, int free_flag) // [mode] 0:save innactivated & 1:save all | [free_flag] 0:don't free | 1:free
+{
+    if (list->actives == 0 && mode == 0)
     {
         return;
-    } else if (list->size == 0 && flag_var == 1)
+    }
+    else if (list->size == 0 && mode == 1)
     {
         return;
     }
@@ -127,7 +128,7 @@ void save_list(List *list, char *list_file_name, int flag_var)
     while (current != NULL)
     {
 
-        if (current->data->active == 1 || flag_var == 0)
+        if (current->data->active == 1 || mode == 0)
         {
             fwrite(current->data, sizeof(Vehicle), 1, file_handler);
         }
@@ -135,11 +136,16 @@ void save_list(List *list, char *list_file_name, int flag_var)
         previous = current;
         current = current->next;
 
-        free(previous->data);
-        free(previous);
+        if (free_flag) {
+            free(previous->data);
+            free(previous);
+        }
+
     }
 
-    free(list);
+    if (free_flag) {
+        free(list);
+    }
 
     fclose(file_handler);
 }
